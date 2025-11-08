@@ -1,0 +1,4 @@
+[ ] Milestone leveling marker that a character can be levelled up
+[ ] Knowledge pips
+[ ] Render Travel Pace
+[ ] Add class to biographies html.querySelector(".tab[data-tab=biography]").classList.add("ember");

@@ -1,0 +1,24 @@
+.tidy5e-sheet.application:where(.quadrone) .meter.progress.attunement-bar {
+    background: var(--bar-behind-color);
+}
+
+.tidy5e-sheet.application:where(.quadrone) .tidy-table-cell.bar-cell {
+    gap: 0.5rem;
+    padding-right: 0.5rem !important;
+}
+
+.tidy5e-sheet.application:where(.quadrone.group) .ember-pips {
+    align-items: center;
+    justify-content: center;
+    margin-inline-start: 0 !important;
+}
+
+.tidy5e-sheet.application:where(.quadrone.group) .ember-pip {
+    height: 1rem !important;
+    width: 1rem !important;
+    border-width: 0.14rem !important;
+}
+
+.tidy5e-sheet.application:where(.quadrone).theme-dark .sheet-pin.ember-pin:hover {
+    box-shadow: var(--t5e-drop-shadow-field);
+}

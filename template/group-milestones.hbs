@@ -1,0 +1,19 @@
+<div class="sheet-pins" data-tidy-sheet-part="sheet-pins">
+  <div class="sheet-pin ember-pin" data-info-card="item">
+    <div class="pin-details">
+      <div class="pin-name-container flexrow" title="{{localize "DND5E.Level"}} {{emberMilestones.level}}">
+        <span class="font-label-medium pin-name">
+          {{localize "EMBER.MILESTONE.Points.Label"}} - {{localize "DND5E.Level"}} {{emberMilestones.level}}
+        </span>
+      </div>
+      <div>
+        <div class="pips spell-pips ember-pips">
+          {{{tidyEmberPips
+          min=emberMilestones.minAmount
+          max=emberMilestones.maxAmount
+          filled=emberMilestones.filledAmount}}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

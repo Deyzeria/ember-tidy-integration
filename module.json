@@ -1,0 +1,46 @@
+{
+  "id": "ember-tidy-integration",
+  "title": "Ember Tidy Integration",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "description": "<p>Integration for Ember for Tidy 5e Sheets for DnD5e. </p>",
+  "authors": [
+    {
+      "name": "Deyzeria",
+      "url": "https://github.com/Deyzeria",
+      "discord": "@deyzeria",
+      "flags": {}
+    }
+  ],
+  "flags": {
+    "canUpload": true
+  },
+  "esmodules": [
+    "/module.mjs"
+  ],
+  "styles": ["/style.css"],
+  "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {}
+      }
+    ],
+    "requires": [
+      {
+        "id": "ember",
+        "type": "module",
+        "compatibility": {}
+      },
+      {
+        "id": "tidy5e-sheet",
+        "type": "module",
+        "compatibility": {}
+      }
+    ]
+  }
+}

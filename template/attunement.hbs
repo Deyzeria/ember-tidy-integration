@@ -46,7 +46,7 @@
           </div>
           <div class="tidy-table-cell" data-tidy-sheet-part="table-cell" style="--tidy-table-column-width: 4rem;">
             {{#if ../canModifyAttunement}}
-            <button type="button" class="icon fa-solid fa-arrow-down" data-action="attunementDecrease" {{disabled attunement.cannotDecrease}}></button>
+            <button type="button" class="icon fa-solid fa-arrow-down" data-action="attunementDecrease" {{#unless attunement.canDecrease}}disabled{{/unless}}></button>
             <button type="button" class="icon fa-solid fa-arrow-up" data-action="attunementIncrease"></button>
             {{/if}}
           </div>

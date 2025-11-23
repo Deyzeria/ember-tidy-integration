@@ -8,12 +8,11 @@ Hooks.once("tidy5e-sheet.ready", (api) => {
       tabId: 'tidy-emberAttunement',
       title: 'EMBER.ATTUNEMENT.Tab',
       iconClass: "fa-solid fa-moon",
-      getData: getData.bind(),
+      getData: getAttunementData.bind(),
       onRender(params) {
-        console.debug(params);
         const myTab = $(params.tabContentsElement);
-        myTab.find('.attunementIncrease').click(_changeAttunement.bind(params.app, true));
-        myTab.find('.attunementDecrease').click(_changeAttunement.bind(params.app, false));
+        myTab.find('[data-action="attunementIncrease"]').click(changeAttunement.bind(params.app, true));
+        myTab.find('[data-action="attunementDecrease"').click(changeAttunement.bind(params.app, false));
       }
     })
   );
@@ -23,8 +22,9 @@ Hooks.once("tidy5e-sheet.ready", (api) => {
     iconClass: "fa-solid fa-books ember-knowledge",
     enabled: (params) => params.context.actor.type === "character",
     openConfiguration: (params) => {
-      // new ember.system.applications.EmberKnowledgeConfig({ document: params.data.actor }).render({ force: true });
+      new ember.system.applications.EmberKnowledgeConfig({ document: params.data.actor }).render({ force: true });
     },
+    pills: generateKnowledgePills.bind(),
     openConfigurationTooltip: "DND5E.ADVANCEMENT.EmberKnowledge.Configure",
   });
 
@@ -43,6 +43,7 @@ Hooks.once("tidy5e-sheet.ready", (api) => {
         const max = ADVANCEMENT[level + 1];
         context.emberMilestones = {
           level: level,
+          calculatedLevel: calculatedLevel,
           filledAmount: total,
           minAmount: min,
           maxAmount: max
@@ -50,23 +51,40 @@ Hooks.once("tidy5e-sheet.ready", (api) => {
         return Promise.resolve(context);
       },
       onRender(params) {
-        var elements = $(params.element).find(".ember-pip");
-        elements.click(_adjustMilestones.bind(params.app, params.data.actor));
+        // Add milestone adjustment
+        const elements = $(params.element).find(".ember-pip");
+        elements.click(adjustMilestones.bind(params.app, params.data.actor));
+
+        // Add marker for characters which can be leveled up
+        const emberMilestones = params.data.emberMilestones;
+        for (const actor of params.data.members.character) {
+          if (actor.system.details.level >= emberMilestones.calculatedLevel) continue;
+          const actorElement = $(params.element).find(`[data-tidy-section-key="character"] [data-member-id="${actor.id}"]`);
+          const nameElement = actorElement.find(".tidy-table-cell.text-cell.primary")[0];
+          nameElement.insertAdjacentHTML("afterend", `
+            <div class="tidy-table-cell" data-tidy-sheet-part="table-cell" style="--tidy-table-column-width: 2.5rem;" data-tidy-render-scheme="handlebars">
+              <img class="tidy-level-up" src="icons/svg/upgrade.svg" data-tooltip="EMBER.MILESTONE.CanLevel">
+            </div>
+          `);
+        }
       }
     })
-  )
+  );
+
+
 });
 
-async function getData(context) {
+// Attunement Tab
+function getAttunementData(context) {
   Hooks.call("dnd5e.prepareSheetContext", context.actor.sheet, "emberAttunement", context);
-  for ( const [name, values] of Object.entries(context.attunements) ) {
+  for (const [name, values] of Object.entries(context.attunements)) {
     values.width = values.widthPct.substring(0, values.widthPct.length - 1);
   }
 
-  return Promise.resolve(context);
+  return context;
 }
 
-async function _changeAttunement(target, status) {
+async function changeAttunement(status, target) {
   if (!game.user.isGM) return;
   const type = target.currentTarget.closest("div.attunement")?.dataset?.attunement;
   if (status) {
@@ -77,7 +95,19 @@ async function _changeAttunement(target, status) {
   }
 }
 
-async function _adjustMilestones(actor, target) {
+// Knowledges
+function generateKnowledgePills(context) {
+  const knowledges = context.data.document.getFlag("ember", "knowledge") || [];
+  const customPills = knowledges.map(name => {
+    return {
+      label: `${ember.CONST.KNOWLEDGE_TYPES[name].label}`
+    }
+  })
+  return customPills;
+}
+
+// Milestone Pips for Group Sheet
+function adjustMilestones(actor, target) {
   if (!game.user.isGM) return;
   const number = target.currentTarget.dataset.number;
   const { total } = ember.system.actors.getMilestones(actor);
@@ -96,4 +126,52 @@ Handlebars.registerHelper('tidyEmberPips', function (data) {
     response += `<div class="ember-pip pip ${i < data.hash.filled ? "active" : "inactive"}" data-number=${i + 1}></div>`;
   }
   return response;
-})
+});
+
+const _vulgarFractions = {
+  "0.125": "⅛",
+  "0.25": "¼",
+  "0.5": "½",
+  "0.75": "¾"
+};
+
+// Render Hook stuff
+Hooks.on("renderTidy5eActorSheetQuadroneBase2", (sheet, element, data) => {
+  // Ember class to Biography tab
+  if (["character", "npc"].includes(data.type)) {
+    element
+      .querySelector('[data-tab-contents-for="biography"]')
+      ?.classList.add("ember")
+  }
+  // Fractional speeds
+  if (data.type === "group") {
+    const groupSpeeds = element.querySelector('.group-speeds');
+    const classNames = ['divider-dot', 'speed'];
+    groupSpeeds.childNodes.forEach(groupSpeedEl => {
+      if (groupSpeedEl.classList && classNames.some(className => groupSpeedEl.classList.contains(className))) {
+        groupSpeedEl.remove();
+      }
+    });
+
+    const { movement } = data.system.attributes;
+    if (movement.air > 0 || movement.land > 0 || movement.water > 0) {
+      const { pace } = movement;
+      const paceConfig = CONFIG.DND5E.travelPace[pace];
+
+      const insertionElement = groupSpeeds.querySelector(".travel-pace");
+      ['air', 'water', 'land'].forEach(speed => {
+        const value = movement[speed] * (paceConfig?.multiplier ?? 1);
+        if (value) {
+          insertionElement.insertAdjacentHTML("afterend", `
+            <span class="speed">
+              <span class="color-text-gold font-label-medium">${game.i18n.localize(`DND5E.Movement${speed.capitalize()}`)}</span>
+              <span class="color-text-default font-data-large">${_vulgarFractions[value] ?? value}</span>
+              <span class="color-text-lighter font-label-medium">${movement.units}</span>
+            </span>
+            `);
+          insertionElement.insertAdjacentHTML("afterend", `<div class="divider-dot"></div>`);
+        }
+      });
+    }
+  }
+});

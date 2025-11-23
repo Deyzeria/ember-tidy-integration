@@ -21,7 +21,9 @@
   "esmodules": [
     "/module.mjs"
   ],
-  "styles": ["/style.css"],
+  "styles": [
+    "/style.css"
+  ],
   "relationships": {
     "systems": [
       {
@@ -34,13 +36,20 @@
       {
         "id": "ember",
         "type": "module",
-        "compatibility": {}
+        "compatibility": {
+          "minimum": "0.4.1"
+        }
       },
       {
         "id": "tidy5e-sheet",
         "type": "module",
-        "compatibility": {}
+        "compatibility": {
+          "minimum": "11.6.0"
+        }
       }
     ]
-  }
+  },
+  "manifest": "https://raw.githubusercontent.com/Deyzeria/ember-tidy-integration/master/module.json",
+  "url": "https://github.com/Deyzeria/ember-tidy-integration",
+  "download": "https://github.com/Deyzeria/ember-tidy-integration/archive/refs/heads/main.zip"
 }

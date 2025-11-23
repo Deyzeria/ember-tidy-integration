@@ -19,6 +19,15 @@
     border-width: 0.14rem !important;
 }
 
-.tidy5e-sheet.application:where(.quadrone).theme-dark .sheet-pin.ember-pin:hover {
+.tidy5e-sheet.application:where(.quadrone) .sheet-pin.ember-pin:hover {
     box-shadow: var(--t5e-drop-shadow-field);
+}
+
+.tidy5e-sheet.application:where(.quadrone.group) .tidy-level-up {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse-glow 4s ease-in-out infinite;
 }

@@ -15,7 +15,7 @@
   <div role="presentation" class="expandable expanded">
     <div class="item-table-body">
       {{#each attunements as |attunement id|}}
-      <div class="tidy-table-row-container attunement {{attunement.identifier}}" data-attunement="{{id}}">
+      <div class="tidy-table-row-container attunement {{attunement.identifier}} {{#if attunement.isActive}}active-attunement{{/if}}" data-attunement="{{id}}" style="--attunement-color: {{attunement.color.css}};">
         <div class="tidy-table-row tidy-table-row-v2">
           <span class="tidy-table-row-use-button disabled">
             <img class="item-image" src="{{attunement.icon}}" alt="{{attunement.name}}">
@@ -44,10 +44,11 @@
               {{attunement.end}}
             </span>
           </div>
-          <div class="tidy-table-cell" data-tidy-sheet-part="table-cell" style="--tidy-table-column-width: 4rem;">
+          <div class="tidy-table-cell" data-tidy-sheet-part="table-cell" style="--tidy-table-column-width: 6rem;">
             {{#if ../canModifyAttunement}}
             <button type="button" class="icon fa-solid fa-arrow-down" data-action="attunementDecrease" {{#unless attunement.canDecrease}}disabled{{/unless}}></button>
             <button type="button" class="icon fa-solid fa-arrow-up" data-action="attunementIncrease"></button>
+            <button type="button" class="icon fa-solid fa-sun" data-action="attunementActivate" {{#unless attunement.canActivate}}disabled{{/unless}}></button>
             {{/if}}
           </div>
 

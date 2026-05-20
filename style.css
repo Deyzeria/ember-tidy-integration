@@ -31,3 +31,10 @@
     justify-content: center;
     animation: pulse-glow 4s ease-in-out infinite;
 }
+
+.tidy5e-sheet.application:where(.quadrone)
+.active-attunement
+button[data-action="attunementActivate"] {
+    color: var(--attunement-color);
+    text-shadow: 0 0 6px var(--attunement-color);
+}

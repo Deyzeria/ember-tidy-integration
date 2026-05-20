@@ -11,8 +11,9 @@ Hooks.once("tidy5e-sheet.ready", (api) => {
       getData: getAttunementData.bind(),
       onRender(params) {
         const myTab = $(params.tabContentsElement);
-        myTab.find('[data-action="attunementIncrease"]').click(changeAttunement.bind(params.app, true));
-        myTab.find('[data-action="attunementDecrease"').click(changeAttunement.bind(params.app, false));
+        myTab.find('[data-action="attunementIncrease"]').click(changeAttunement.bind(params.app, "increase"));
+        myTab.find('[data-action="attunementDecrease"]').click(changeAttunement.bind(params.app, "decrease"));
+        myTab.find('[data-action="attunementActivate"]').click(changeAttunement.bind(params.app, "activate"));
       }
     })
   );
@@ -79,19 +80,65 @@ function getAttunementData(context) {
   Hooks.call("dnd5e.prepareSheetContext", context.actor.sheet, "emberAttunement", context);
   for (const [name, values] of Object.entries(context.attunements)) {
     values.width = values.widthPct.substring(0, values.widthPct.length - 1);
+
+    values.canActivate = values.rank > 0 && values.identifier !== context.actor.flags.ember.attunement;
+
+    values.isActive = values.identifier === context.actor.flags.ember.attunement;
   }
 
   return context;
 }
 
-async function changeAttunement(status, target) {
+async function changeAttunement(action, target) {
   if (!game.user.isGM) return;
+
   const type = target.currentTarget.closest("div.attunement")?.dataset?.attunement;
-  if (status) {
-    await ember.api.systems.attunement.awardAttunementDialog(this.document, type);
+  if (!type) return;
+
+  const api = ember.api.systems.attunement;
+
+  if (action === "increase") {
+    return api.awardAttunementDialog(this.document, type);
   }
-  else {
-    await ember.api.systems.attunement.revokeAttunementDialog(this.document, type);
+
+  if (action === "decrease") {
+    return api.revokeAttunementDialog(this.document, type);
+  }
+
+  if (action === "activate") {
+    const actor = this.document;
+
+    const currentAttunementId = actor.flags.ember.attunement;
+    const currentType = currentAttunementId?.replace(/^ember/, "").toLowerCase();
+
+    const currentAttunement = ember.CONST.ATTUNEMENTS[currentAttunementId]
+      ?? ember.CONST.ATTUNEMENT_IDENTIFIERS[currentAttunementId];
+
+    const nextAttunement = ember.CONST.ATTUNEMENTS[type]
+      ?? ember.CONST.ATTUNEMENT_IDENTIFIERS[type];
+
+    const currentRank = currentType
+      ? actor.flags.ember.attunements?.[currentType]?.rank
+      : null;
+
+    const nextRank = actor.flags.ember.attunements?.[type]?.rank;
+
+    const loseItem = currentAttunement && currentRank
+      ? actor.items.find(item => item.name.startsWith(`${currentAttunement.label} ${currentRank}:`))
+      : null;
+
+    const pack = game.packs.get("ember.character");
+    const packIndex = pack ? await pack.getIndex() : null;
+
+    const gainItemIndex = nextAttunement && nextRank && packIndex
+      ? packIndex.find(item => item.name.startsWith(`${nextAttunement.label} ${nextRank}:`))
+      : null;
+
+    const gainItem = gainItemIndex && pack
+      ? await pack.getDocument(gainItemIndex._id)
+      : null;
+
+    return api.activateAttunementDialog(actor, type, { gainItem, loseItem });
   }
 }
 

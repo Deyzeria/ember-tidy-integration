@@ -9,3 +9,4 @@ https://raw.githubusercontent.com/Deyzeria/ember-tidy-integration/master/module.
 
 # Known Issues
 - When you update Knowledge config, it doesn't update the pips on the character sheet until you reopen the sheet. The issue is on Tidy side, and will most likely be updated in a next version after 11.7.0.
+- Tidy doesn't support setting a vehicle as a primary vehicle yet. See here https://github.com/kgar/foundry-vtt-tidy-5e-sheets/issues/1501

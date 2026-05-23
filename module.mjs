@@ -1,7 +1,6 @@
 const MODULE_ID = "ember-tidy-integration";
 
 Hooks.once("tidy5e-sheet.ready", (api) => {
-  console.debug(api);
   api.registerCharacterTab(
     new api.models.HandlebarsTab({
       path: `/modules/${MODULE_ID}/template/attunement.hbs`,
@@ -12,7 +11,8 @@ Hooks.once("tidy5e-sheet.ready", (api) => {
       onRender(params) {
         const myTab = $(params.tabContentsElement);
         myTab.find('[data-action="attunementIncrease"]').click(changeAttunement.bind(params.app, true));
-        myTab.find('[data-action="attunementDecrease"').click(changeAttunement.bind(params.app, false));
+        myTab.find('[data-action="attunementDecrease"]').click(changeAttunement.bind(params.app, false));
+        myTab.find('[data-action="attunementActivate"]').click(onClickActivateAttunement.bind(params.app))
       }
     })
   );
@@ -71,28 +71,52 @@ Hooks.once("tidy5e-sheet.ready", (api) => {
     })
   );
 
-
+  // While a duplicate of code from Ember, there it's run every time that an attunement is activated, which seems unneccessary, unless a user is planning to add a new one in the runtime without updating.
+  // Did this instead, where it's generated once and is stored in CONFIG for the module.
+  // Somewhat messy, shitty, and should probably be stored in ember.CONST, but not touching that.
+  CONFIG.EmberTidyIntegration = {};
+  CONFIG.EmberTidyIntegration.IdRanksGenerated = new Set();
+  for (const identifier of Object.keys(ember.CONST.ATTUNEMENT_FEAT_IDS)) {
+    for (let rank = 1; rank <= 5; rank++) CONFIG.EmberTidyIntegration.IdRanksGenerated.add(`${identifier}${rank}`);
+  }
 });
 
 // Attunement Tab
 function getAttunementData(context) {
   Hooks.call("dnd5e.prepareSheetContext", context.actor.sheet, "emberAttunement", context);
-  for (const [name, values] of Object.entries(context.attunements)) {
-    values.width = values.widthPct.substring(0, values.widthPct.length - 1);
-  }
-
   return context;
 }
 
-async function changeAttunement(status, target) {
+async function changeAttunement(status, event) {
   if (!game.user.isGM) return;
-  const type = target.currentTarget.closest("div.attunement")?.dataset?.attunement;
+  const type = event.currentTarget.closest("div.attunement")?.dataset?.attunement;
   if (status) {
     await ember.api.systems.attunement.awardAttunementDialog(this.document, type);
   }
   else {
     await ember.api.systems.attunement.revokeAttunementDialog(this.document, type);
   }
+}
+
+async function onClickActivateAttunement(event) {
+  const type = event.currentTarget.closest("div.attunement")?.dataset?.attunement;
+  const attunement = ember.CONST.ATTUNEMENTS[type] ?? ember.CONST.ATTUNEMENT_IDENTIFIERS[type];
+  if (!attunement) return;
+
+  const actor = this.document;
+  const gainItem = await resolveAttunementFeat(actor, attunement);
+  const loseItem = actor.items.find(i => CONFIG.EmberTidyIntegration.IdRanksGenerated.has(i.system?.identifier)) ?? null;
+
+  await ember.api.systems.attunement.activateAttunementDialog(actor, type, { gainItem, loseItem });
+}
+
+async function resolveAttunementFeat(actor, attunement) {
+  const type = actor.getFlag("ember", "attunements")?.[attunement.id];
+  if (!type || (type.rank ?? 0) < 1) return null;
+  const featId = ember.CONST.ATTUNEMENT_FEAT_IDS[attunement.identifier]?.[type.rank];
+  if (!featId) return null;
+  const pack = game.packs.get(ember.CONST.CHARACTER_OPTIONS_PACK);
+  return pack.getDocument(featId);
 }
 
 // Knowledges
@@ -105,6 +129,7 @@ function generateKnowledgePills(context) {
   })
   return customPills;
 }
+
 
 // Milestone Pips for Group Sheet
 function adjustMilestones(actor, target) {
@@ -139,10 +164,9 @@ const _vulgarFractions = {
 Hooks.on("renderTidy5eActorSheetQuadroneBase2", (sheet, element, data) => {
   // Ember class to Biography tab
   if (["character", "npc"].includes(data.type)) {
-    element
-      .querySelector('[data-tab-contents-for="biography"]')
-      ?.classList.add("ember")
+    element.querySelector('[data-tab-contents-for="biography"]')?.classList.add("ember")
   }
+
   // Fractional speeds
   if (data.type === "group") {
     const groupSpeeds = element.querySelector('.group-speeds');
@@ -153,25 +177,39 @@ Hooks.on("renderTidy5eActorSheetQuadroneBase2", (sheet, element, data) => {
       }
     });
 
-    const { movement } = data.system.attributes;
-    if (movement.air > 0 || movement.land > 0 || movement.water > 0) {
-      const { pace } = movement;
-      const paceConfig = CONFIG.DND5E.travelPace[pace];
+    const system = data.system;
+    const pace = system.attributes.travel.pace;
+    const isPartySlowed = system.members.some(({ actor }) => {
+      return actor && actor.system.isCreature && actor.system.attributes?.movement?.slowed;
+    });
 
-      const insertionElement = groupSpeeds.querySelector(".travel-pace");
-      ['air', 'water', 'land'].forEach(speed => {
-        const value = movement[speed] * (paceConfig?.multiplier ?? 1);
-        if (value) {
-          insertionElement.insertAdjacentHTML("afterend", `
-            <span class="speed">
-              <span class="color-text-gold font-label-medium">${game.i18n.localize(`DND5E.Movement${speed.capitalize()}`)}</span>
-              <span class="color-text-default font-data-large">${_vulgarFractions[value] ?? value}</span>
-              <span class="color-text-lighter font-label-medium">${movement.units}</span>
-            </span>
-            `);
-          insertionElement.insertAdjacentHTML("afterend", `<div class="divider-dot"></div>`);
-        }
-      });
+    const travelPacesKeys = Object.keys(CONFIG.DND5E.travelPace);
+    const slowIndex = travelPacesKeys.indexOf("slow");
+    if (isPartySlowed && travelPacesKeys.indexOf(pace) > slowIndex) {
+      pace = "slow";
     }
+
+    const { travel: vehicleTravel } = system.primaryVehicle?.system.attributes ?? {};
+    const movements = { ...(vehicleTravel?.speeds ?? system.attributes.travel.speeds) };
+    if (!system.primaryVehicle || (system.primaryVehicle.system.details.type === "land")) {
+      for (const [id, value] of Object.entries(movements)) {
+        movements[id] = value * (CONFIG.DND5E.travelPace[pace]?.multiplier ?? 1);
+      }
+    }
+
+    const insertionElement = groupSpeeds.querySelector(".travel-pace");
+    ["air", "water", "land"].forEach(speed => {
+      const value = movements[speed];
+      const label = CONFIG.DND5E.travelTypes?.[speed]?.label;
+      if (value) {
+        insertionElement.insertAdjacentHTML("afterend", `
+          <span class="speed">
+            <span class="color-text-gold font-label-medium">${label ?? game.i18n.localize(`DND5E.Movement${speed.capitalize()}`)}</span>
+            <span class="color-text-default font-data-medium">${value ? _vulgarFractions[value] ?? value : "-"}</span>
+          </span>
+          `);
+        insertionElement.insertAdjacentHTML("afterend", `<div class="divider-dot"></div>`);
+      }
+    });
   }
 });

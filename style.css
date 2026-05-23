@@ -2,6 +2,10 @@
     background: var(--bar-behind-color);
 }
 
+.tidy5e-sheet.application:where(.quadrone) .attunement-amount-label {
+    width: 15px;
+}
+
 .tidy5e-sheet.application:where(.quadrone) .tidy-table-cell.bar-cell {
     gap: 0.5rem;
     padding-right: 0.5rem !important;

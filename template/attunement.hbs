@@ -4,12 +4,10 @@
       <span style="width: 0.5rem;"></span>
       <h3>{{localize "EMBER.ATTUNEMENT.Attunement"}}</h3>
     </div>
-    <div class="tidy-table-header-cell" data-tidy-sheet-part="table-header-cell"
-      style="--tidy-table-column-width: 28rem;">
+    <div class="tidy-table-header-cell" data-tidy-sheet-part="table-header-cell" style="--tidy-table-column-width: 28rem;"> 
       {{localize "EMBER.ATTUNEMENT.Progress"}}
     </div>
-    <div class="tidy-table-header-cell" data-tidy-sheet-part="table-header-cell"
-      style="--tidy-table-column-width: 4rem;">
+    <div class="tidy-table-header-cell" data-tidy-sheet-part="table-header-cell" style="--tidy-table-column-width: 6rem;">
     </div>
   </header>
   <div role="presentation" class="expandable expanded">
@@ -30,7 +28,7 @@
           </div>
           <div class="tidy-table-cell bar-cell" data-tidy-sheet-part="table-cell"
             style="--tidy-table-column-width: 28rem;">
-            <span data-tooltip aria-label="{{localize 'EMBER.ATTUNEMENT.CurrentTooltip'}}">
+            <span class="attunement-amount-label" data-tooltip aria-label="{{localize 'EMBER.ATTUNEMENT.CurrentTooltip'}}">
               {{attunement.current}}
             </span>
             <div class="meter progress attunement-bar" role="meter" aria-valuemin="0"
@@ -40,17 +38,18 @@
               --bar-behind-color: {{attunement.backgroundColor.css}};
               --bar-end-border-width: 0;">
             </div>
-            <span data-tooltip aria-label="{{localize 'EMBER.ATTUNEMENT.NextTooltip'}}">
+            <span class="attunement-amount-label" data-tooltip aria-label="{{localize 'EMBER.ATTUNEMENT.NextTooltip'}}">
               {{attunement.end}}
             </span>
           </div>
-          <div class="tidy-table-cell" data-tidy-sheet-part="table-cell" style="--tidy-table-column-width: 4rem;">
+          <div class="tidy-table-cell" data-tidy-sheet-part="table-cell" style="--tidy-table-column-width: 6rem;">
             {{#if ../canModifyAttunement}}
             <button type="button" class="icon fa-solid fa-arrow-down" data-action="attunementDecrease" {{#unless attunement.canDecrease}}disabled{{/unless}}></button>
             <button type="button" class="icon fa-solid fa-arrow-up" data-action="attunementIncrease"></button>
             {{/if}}
+            <button type="button" class="icon fa-solid fa-sun" data-action="attunementActivate" data-tooltip aria-label="Make Active"
+              {{#unless attunement.canActivate}}disabled{{/unless}}></button>
           </div>
-
         </div>
       </div>
       {{/each}}
